@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SFKhub Launcher</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>SFKhub Launcher</h1>
+    <p>Unity WebGL と HTML ゲームを同時に扱えるシンプルなゲームランチャーです。</p>
+  </header>
+
+  <main>
+    <div class="sidebar">
+      <section class="panel config-panel">
+        <h2>設定</h2>
+        <label>
+          データURL
+          <input id="dataUrl" type="text" value="https://cdn.jsdelivr.net/gh/kelsimsk/zarara@main/Build/StealBrainrotV19.data.unityweb" />
+        </label>
+        <label>
+          フレームワークURL
+          <input id="frameworkUrl" type="text" value="https://cdn.jsdelivr.net/gh/kelsimsk/zarara@main/Build/StealBrainrotV19.framework.js.unityweb" />
+        </label>
+        <label>
+          コードURL
+          <input id="codeUrl" type="text" value="https://cdn.jsdelivr.net/gh/kelsimsk/zarara@main/Build/StealBrainrotV19.wasm.unityweb" />
+        </label>
+        <label>
+          会社名
+          <input id="companyName" type="text" value="SFKhub" />
+        </label>
+        <label>
+          製品名
+          <input id="productName" type="text" value="SFKhub Launcher" />
+        </label>
+        <label>
+          製品バージョン
+          <input id="productVersion" type="text" value="1.0.0" />
+        </label>
+        <label>
+          向き制御
+          <select id="orientationMode">
+            <option value="none">無効</option>
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </label>
+        <div class="actions">
+          <button id="loadButton">ゲームを読み込む</button>
+          <button id="resetButton" type="button">設定をリセット</button>
+        </div>
+      </section>
+
+      <section class="panel library-panel">
+        <h2>Game Library</h2>
+        <p>検索して選択ゲームを起動できます。HTMLゲームはiframeで読み込みます。</p>
+        <label>
+          検索
+          <input id="gameSearch" type="text" placeholder="ゲーム名を入力" />
+        </label>
+        <div id="game-count" class="game-count">0 games</div>
+        <div id="selected-game-info" class="selected-game-info">選択中のゲーム: なし</div>
+        <div id="game-list" class="game-list" role="listbox" aria-label="Game selection"></div>
+        <div class="actions">
+          <button id="launchSelectedButton" type="button">選択ゲームを起動</button>
+          <button id="randomGameButton" type="button">ランダム Duel</button>
+        </div>
+      </section>
+      <section class="panel cheat-panel">
+        <h2>Cheat Hub (Roblox / PC)</h2>
+        <p>RobloxとPC WebGL向けのスクリプトテンプレートを選んで編集し、コピーして使えます。</p>
+        <label>
+          スクリプト選択
+          <select id="cheatSelect"></select>
+        </label>
+        <label>
+          スクリプト内容
+          <textarea id="cheatCode" rows="10" placeholder="ここにスクリプトが表示されます"></textarea>
+        </label>
+        <div id="cheat-description" class="cheat-description">スクリプトを選択してください。</div>
+        <div class="actions">
+          <button id="loadCheatButton" type="button">読み込み</button>
+          <button id="copyCheatButton" type="button">コピー</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel preview-panel">
+      <h2>プレビュー</h2>
+      <div class="viewer-toolbar">
+        <span id="viewer-mode">Viewer: Unity</span>
+        <div class="viewer-actions">
+          <button id="switchToUnityButton" type="button">Unityに戻る</button>
+          <button id="openGameTabButton" type="button">新しいタブで開く</button>
+        </div>
+      </div>
+      <div id="gameContainer">
+        <div id="orientation-warning">
+          <img id="orientation-image" src="https://cdn.jsdelivr.net/gh/kelsimsk/zarara@main/TemplateData/Orientation/orientation.png" alt="Rotate Device" />
+          <div class="orientation-text">[orientation message]</div>
+        </div>
+        <canvas id="unity-canvas" width="1470" height="1830"></canvas>
+        <iframe id="game-frame" sandbox="allow-same-origin allow-scripts" aria-label="Game Preview Frame"></iframe>
+        <div class="loadingOut" id="loadingOverlay">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="centered" id="loadingLabel">Loading...</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/gh/kelsimsk/zarara@main/Build/StealBrainrotV19.loader.js"></script>
+  <script src="games.js"></script>
+  <script src="cheats.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
