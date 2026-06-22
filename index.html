@@ -2,645 +2,399 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE LURKER - ブラウザホラーゲーム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>パワフル・スピリッツ 3D</title>
     <style>
-        body, html {
+        body {
             margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
             overflow: hidden;
-            background-color: #000;
-            font-family: 'Courier New', Courier, monospace;
+            background-color: #111;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             user-select: none;
+            -webkit-user-select: none;
         }
-
         #canvas-container {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
+            display: block;
         }
-
-        /* UIオーバーレイ */
-        #start-screen {
+        /* UIレイアウト */
+        .hud {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, #1a0505 0%, #000000 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #8b0000;
-            z-index: 10;
-            text-align: center;
-            transition: opacity 1s ease;
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            letter-spacing: 10px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(139, 0, 0, 0.7);
-            animation: flicker 3s infinite alternate;
-        }
-
-        .instructions {
-            color: #bbb;
-            font-size: 1.1rem;
-            max-width: 600px;
-            line-height: 1.6;
-            margin-bottom: 40px;
-            padding: 0 20px;
-        }
-
-        .btn {
-            background: transparent;
-            border: 2px solid #8b0000;
-            color: #8b0000;
-            padding: 15px 40px;
-            font-size: 1.5rem;
+            color: white;
             font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 15px rgba(139, 0, 0, 0.2);
-        }
-
-        .btn:hover {
-            background: #8b0000;
-            color: #000;
-            box-shadow: 0 0 25px rgba(139, 0, 0, 0.8);
-        }
-
-        #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #fff;
-            font-size: 1.2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
             pointer-events: none;
-            display: none;
-            text-shadow: 1px 1px 2px #000;
         }
+        #game-info { top: 15px; left: 15px; font-size: 16px; }
+        #bs-count { top: 15px; right: 15px; font-size: 20px; text-align: right; }
+        #player-card { bottom: 20px; left: 15px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border-left: 5px solid #ffeb3b; }
 
-        #crosshair {
+        /* ポップアップメッセージ */
+        #msg {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 6px;
-            height: 6px;
-            background-color: rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
+            top: 35%; left: 50%;
             transform: translate(-50%, -50%);
-            pointer-events: none;
-            display: none;
+            color: #fff; font-size: 42px; font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+            text-align: center; pointer-events: none;
         }
 
-        #game-over-screen, #win-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 20;
+        /* メニュー・ガチャ画面 overlay */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white; z-index: 10;
         }
-
-        #game-over-screen h2 {
-            color: #ff0000;
-            font-size: 4rem;
-            letter-spacing: 5px;
-            margin-bottom: 20px;
+        .btn {
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            color: white; border: none; padding: 12px 30px; font-size: 18px;
+            font-weight: bold; border-radius: 25px; margin: 10px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255,152,0,0.4);
         }
-
-        #win-screen h2 {
-            color: #00ff00;
-            font-size: 4rem;
-            letter-spacing: 5px;
-            margin-bottom: 20px;
+        .btn:active { transform: scale(0.95); }
+        .gacha-card {
+            background: #222; border: 2px solid #ffd700; border-radius: 10px;
+            padding: 20px; text-align: center; margin: 20px; width: 200px;
+            box-shadow: 0 0 20px rgba(255,215,0,0.6);
         }
-
-        .subtitle {
-            color: #aaa;
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-        }
-
-        /* 驚かし演出（ジャンプスケア） */
-        #jumpscare {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #110000;
-            display: none;
-            z-index: 30;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #jumpscare-face {
-            width: 80vh;
-            height: 80vh;
-            background: radial-gradient(circle, #ff0000 10%, #220000 40%, #000000 70%);
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 0 100px #ff0000;
-            animation: shake 0.1s infinite alternate;
-        }
-
-        #jumpscare-face::before, #jumpscare-face::after {
-            content: '';
-            position: absolute;
-            top: 30%;
-            width: 80px;
-            height: 120px;
-            background-color: #fff;
-            border-radius: 50%;
-            box-shadow: 0 0 30px #fff;
-        }
-        #jumpscare-face::before { left: 25%; }
-        #jumpscare-face::after { right: 25%; }
-
-        #jumpscare-mouth {
-            position: absolute;
-            bottom: 20%;
-            left: 25%;
-            width: 50%;
-            height: 150px;
-            background-color: #000;
-            border-radius: 50%;
-            box-shadow: 0 0 20px #ff0000;
-        }
-
-        @keyframes flicker {
-            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
-            20%, 24%, 55% { opacity: 0.3; }
-        }
-
-        @keyframes shake {
-            0% { transform: translate(5px, 5px) rotate(0deg); }
-            100% { transform: translate(-5px, -5px) rotate(3deg); }
-        }
+        .rank-S { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
+        .rank-A { color: #e0e0e0; text-shadow: 0 0 10px #e0e0e0; }
+        .rank-B { color: #cd7f32; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="start-screen">
-        <h1>THE LURKER</h1>
-        <div class="instructions">
-            <p>【ストーリー】<br>深夜の廃病院。あなたは閉じ込められてしまった。<br>脱出するには、暗闇の迷宮に散らばる「3つの手記」を集めなければならない。</p>
-            <p>【警告】<br>暗闇には「何か」が潜んでいる。足音が近づいたら急いで逃げろ。<br>懐中電灯の光が届く範囲だけが、あなたの視界だ。</p>
-            <p>【操作方法】<br>マウス移動 : 視点移動 (画面クリックで視点固定)<br>W, A, S, D : 前後左右に移動</p>
-        </div>
-        <button class="btn" id="start-btn">探索を開始する</button>
-    </div>
-
-    <div id="hud">手記: <span id="pages-count">0</span> / 3</div>
-    <div id="crosshair"></div>
-
-    <div id="jumpscare">
-        <div id="jumpscare-face">
-            <div id="jumpscare-mouth"></div>
-        </div>
-    </div>
-
-    <div id="game-over-screen">
-        <h2>YOU DIED</h2>
-        <div class="subtitle">闇に呑まれてしまった...</div>
-        <button class="btn" onclick="location.reload()">もう一度挑戦する</button>
-    </div>
-
-    <div id="win-screen">
-        <h2>SURVIVED</h2>
-        <div class="subtitle">全ての手記を集め、生還を果たした。</div>
-        <button class="btn" onclick="location.reload()">タイトルに戻る</button>
-    </div>
-
     <div id="canvas-container"></div>
+    
+    <!-- 試合中UI -->
+    <div id="game-info" class="hud">
+        <div id="turn-display">1回表 [攻撃: P1]</div>
+        <div style="font-size: 24px; margin-top: 5px;">P1: <span id="p1-score">0</span> - <span id="p2-score">0</span> :P2</div>
+        <div style="color: #00e676; margin-top: 5px;">所持SP: <span id="sp-display">100</span></div>
+    </div>
+
+    <div id="bs-count" class="hud">
+        <div style="color: #ff1744;">S: <span id="strikes">○○○</span></div>
+        <div style="color: #00e676;">B: <span id="balls">○○○○</span></div>
+        <div style="color: #ff9800;">O: <span id="outs">○○○</span></div>
+    </div>
+
+    <div id="player-card" class="hud">
+        <div style="font-size:12px; color:#aaa;" id="card-role">BATTER</div>
+        <div id="card-name" style="font-size:18px; color:#fff;">選手名</div>
+        <div id="card-status" style="font-size:14px; color:#ffd700;">Rank</div>
+    </div>
+
+    <div id="msg">POWERFUL SPIRITS</div>
+
+    <!-- メインメニュー -->
+    <div id="menu-overlay" class="overlay">
+        <h1 style="color: #ffeb3b; text-shadow: 0 0 10px rgba(255,235,59,0.6);">プロスピLite 2P対戦</h1>
+        <p>1台のスマホで交互にプレイするターン制リアルタイム対戦！</p>
+        <button class="btn" onclick="startMatch()">試合開始 (1イニング制)</button>
+        <button class="btn" style="background:#3f51b5;" onclick="openGacha()">選手スカウト (100SP)</button>
+        <div style="margin-top:20px; color:#aaa;" id="menu-sp">所持SP: 100</div>
+    </div>
+
+    <!-- ガチャ演出画面 -->
+    <div id="gacha-overlay" class="overlay" style="display:none;">
+        <h2 id="gacha-title">契約書開封中...</h2>
+        <div id="gacha-result" style="display:none;">
+            <div class="gacha-card">
+                <h2 id="g-rank" class="rank-S">S</h2>
+                <h3 id="g-name">大谷 翔平</h3>
+                <p id="g-ability">ミート: A / 球速: 165km</p>
+            </div>
+            <button class="btn" onclick="closeGacha()">戻る</button>
+        </div>
+    </div>
 
     <script>
-        // --- Web Audio API (効果音のコード内自動生成) ---
-        let audioCtx = null;
+        // --- オリジナル選手データとガチャシステム ---
+        const FIRST_NAMES = ["ミライ", "ツバサ", "ハヤト", "タクミ", "カイト", "リュウ", "ソウタ", "レン"];
+        const LAST_NAMES = ["佐藤", "鈴木", "高橋", "田中", "伊藤", "渡辺", "山本", "中村"];
+        const SKILLS = ["豪速球", "アーチスト", "安打製造機", "消える魔球", "タフネス", "全力疾走"];
 
-        function initAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        // 心音の生成
-        function playHeartbeat() {
-            if (!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(55, audioCtx.currentTime); 
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
-        }
-
-        // 捕まった時の叫び声・ノイズ生成
-        function playJumpscareSound() {
-            if (!audioCtx) return;
-            let bufferSize = audioCtx.sampleRate * 1.5;
-            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            let data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
-            let noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
-
-            let noiseFilter = audioCtx.createBiquadFilter();
-            noiseFilter.type = 'lowpass';
-            noiseFilter.frequency.setValueAtTime(400, audioCtx.currentTime);
-
-            let noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(1.5, audioCtx.currentTime);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
-
-            noise.connect(noiseFilter);
-            noiseFilter.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-
-            for(let i=0; i<3; i++) {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(100 + (i * 80), audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 1.2);
-                
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 1.2);
-            }
-            noise.start();
-            noise.stop(audioCtx.currentTime + 1.5);
-        }
-
-        // アイテム回収音
-        function playPickupSound() {
-            if (!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.4);
-        }
-
-        // --- ゲームメイン処理 ---
-        const startScreen = document.getElementById('start-screen');
-        const startBtn = document.getElementById('start-btn');
-        const hud = document.getElementById('hud');
-        const crosshair = document.getElementById('crosshair');
-        const pagesCountEl = document.getElementById('pages-count');
-        const jumpscareOverlay = document.getElementById('jumpscare');
-        const gameOverScreen = document.getElementById('game-over-screen');
-        const winScreen = document.getElementById('win-screen');
-
-        let scene, camera, renderer, flashlight;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let prevTime = performance.now();
-        let velocity = new THREE.Vector3();
-        let direction = new THREE.Vector3();
-        let isGameActive = false;
-
-        let yaw = 0;
-        let pitch = 0;
-
-        let pagesCollected = 0;
-        const totalPages = 3;
-        let pagesArray = [];
-        let monster;
-        let heartbeatTimer = 0;
-
-        // 迷路マップ (1 = 壁, 0 = 通路)
-        const mapSize = 16;
-        const map = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1],
-            [1,0,1,0,1,0,1,1,1,1,0,1,0,1,0,1],
-            [1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1],
-            [1,0,1,1,1,1,1,0,0,1,1,1,1,1,0,1],
-            [1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1],
-            [1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1],
-            [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1],
-            [1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,1],
-            [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,1,0,1,1,0,1,0,0,0,0,1],
-            [1,1,1,1,0,1,0,0,0,0,1,0,1,1,1,1],
-            [1,0,0,0,0,1,1,0,0,1,1,0,0,0,0,1],
-            [1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        let myTeam = [
+            { name: "山田 太郎", rank: "A", meet: 75, speed: 145, role: "二刀流" },
+            { name: "サトシ", rank: "B", meet: 60, speed: 135, role: "二刀流" }
         ];
-        const unitSize = 6; 
-        let walls = [];
+        let sp = 300;
 
-        startBtn.addEventListener('click', () => {
-            initAudio();
-            startScreen.style.opacity = '0';
-            setTimeout(() => {
-                startScreen.style.display = 'none';
-                hud.style.display = 'block';
-                crosshair.style.display = 'block';
-                document.body.requestPointerLock();
-                isGameActive = true;
-            }, 1000);
-            initGame();
-        });
-
-        function initGame() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x020202);
-            scene.fog = new THREE.FogExp2(0x020202, 0.08); // 濃い霧
-
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(unitSize * 1.5, 2, unitSize * 1.5); // スタート位置
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            // プレイヤーの持つ懐中電灯 (スポットライト)
-            flashlight = new THREE.SpotLight(0xfffaed, 2, 40, Math.PI / 5, 0.5, 1);
-            flashlight.castShadow = true;
-            camera.add(flashlight);
-            flashlight.position.set(0, 0, 0);
+        function generateRandomPlayer() {
+            const rand = Math.random();
+            let rank = "B", meet = 55, speed = 130;
+            if (rand > 0.9) { rank = "S"; meet = 85; speed = 155; }
+            else if (rand > 0.6) { rank = "A"; meet = 72; speed = 142; }
             
-            const targetObject = new THREE.Object3D();
-            targetObject.position.set(0, 0, -1);
-            camera.add(targetObject);
-            flashlight.target = targetObject;
-
-            scene.add(camera);
-
-            const ambientLight = new THREE.AmbientLight(0x050505);
-            scene.add(ambientLight);
-
-            generateMaze();
-            spawnPages();
-            createMonster();
-
-            document.addEventListener('keydown', onKeyDown);
-            document.addEventListener('keyup', onKeyUp);
-            document.addEventListener('mousemove', onMouseMove);
-            window.addEventListener('resize', onWindowResize);
-
-            animate();
+            meet += Math.floor(Math.random() * 15);
+            speed += Math.floor(Math.random() * 12);
+            const name = LAST_NAMES[Math.floor(Math.random()*LAST_NAMES.length)] + " " + FIRST_NAMES[Math.floor(Math.random()*FIRST_NAMES.length)];
+            return { name, rank, meet, speed, skill: SKILLS[Math.floor(Math.random()*SKILLS.length)] };
         }
 
-        // 3D迷路の生成
-        function generateMaze() {
-            const wallGeo = new THREE.BoxGeometry(unitSize, 6, unitSize);
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x33332d, roughness: 0.9 });
+        function openGacha() {
+            if (sp < 100) { alert("SPが足りません！(1回100SP)"); return; }
+            sp -= 100;
+            document.getElementById('menu-sp').innerText = `所持SP: ${sp}`;
+            document.getElementById('sp-display').innerText = sp;
+            
+            document.getElementById('menu-overlay').style.display = 'none';
+            document.getElementById('gacha-overlay').style.display = 'flex';
+            document.getElementById('gacha-result').style.display = 'none';
+            document.getElementById('gacha-title').innerText = "契約書を引いています...";
 
-            const floorGeo = new THREE.PlaneGeometry(mapSize * unitSize, mapSize * unitSize);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.set((mapSize * unitSize)/2 - unitSize/2, 0, (mapSize * unitSize)/2 - unitSize/2);
-            floor.receiveShadow = true;
-            scene.add(floor);
+            setTimeout(() => {
+                const p = generateRandomPlayer();
+                myTeam.push(p);
+                document.getElementById('gacha-title').innerText = "スカウト成功！";
+                document.getElementById('g-rank').className = `rank-${p.rank}`;
+                document.getElementById('g-rank').innerText = p.rank;
+                document.getElementById('g-name').innerText = p.name;
+                document.getElementById('g-ability').innerText = `ミート: ${p.meet} / 球速: ${p.speed}km\n特能: ${p.skill}`;
+                document.getElementById('gacha-result').style.display = 'block';
+            }, 1200);
+        }
 
-            const ceiling = new THREE.Mesh(floorGeo, wallMat);
-            ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.set((mapSize * unitSize)/2 - unitSize/2, 5, (mapSize * unitSize)/2 - unitSize/2);
-            scene.add(ceiling);
+        function closeGacha() {
+            document.getElementById('gacha-overlay').style.display = 'none';
+            document.getElementById('menu-overlay').style.display = 'flex';
+        }
 
-            for (let r = 0; r < mapSize; r++) {
-                for (let c = 0; c < mapSize; c++) {
-                    if (map[r][c] === 1) {
-                        const wall = new THREE.Mesh(wallGeo, wallMat);
-                        wall.position.set(c * unitSize, 3, r * unitSize);
-                        wall.castShadow = true;
-                        wall.receiveShadow = true;
-                        scene.add(wall);
-                        walls.push(wall);
+        // 最強の選手を自動アサイン
+        function getBestPlayers() {
+            let sorted = [...myTeam].sort((a,b) => (b.rank === 'S' ? 2 : b.rank === 'A' ? 1 : 0) - (a.rank === 'S' ? 2 : a.rank === 'A' ? 1 : 0));
+            return { batter: sorted[0] || {name:"モブ打者", meet:60, rank:"B"}, pitcher: sorted[1] || sorted[0] || {name:"モブ投手", speed:135, rank:"B"} };
+        }
+
+        // --- ゲーム状態管理 ---
+        let gameState = 'MENU'; // MENU, PITCHING_WAIT, BALL_FLYING, INNING_CHANGE, END
+        let inning = 1;         // 1 = 1回表(P1攻, P2守), 2 = 1回裏(P2攻, P1守)
+        let scores = { p1: 0, p2: 0 };
+        let strikes = 0, balls = 0, outs = 0;
+        let activePitcher, activeBatter;
+
+        let ballState = 'NONE';
+        let ballSpeedFactor = 0.35;
+        let ballVelocity = new THREE.Vector3();
+
+        // --- Three.js 構築 ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x54bbf0);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2.3, 5.5);
+        camera.lookAt(0, 1.2, -10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // 光源
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const light = new THREE.DirectionalLight(0xffffff, 0.6);
+        light.position.set(5, 15, 5);
+        scene.add(light);
+
+        // グラウンド簡易表現
+        const groundGeo = new THREE.ConeGeometry(25, 1, 4);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x388e3c });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = Math.PI; ground.position.set(0, -0.5, -10);
+        scene.add(ground);
+
+        // ボール & バット
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        ball.position.set(0, -10, 0);
+        scene.add(ball);
+
+        const batPivot = new THREE.Group();
+        batPivot.position.set(0.6, 0.7, 1);
+        scene.add(batPivot);
+        const bat = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.02, 1.1, 16), new THREE.MeshStandardMaterial({ color: 0xa1887f }));
+        bat.position.set(0, 0.45, 0);
+        batPivot.add(bat);
+        resetBat();
+
+        function resetBat() { batPivot.rotation.set(Math.PI/6, -Math.PI/4, 0); }
+
+        // --- ゲーム進行コアロジック ---
+        function updateHud() {
+            document.getElementById('p1-score').innerText = scores.p1;
+            document.getElementById('p2-score').innerText = scores.p2;
+            document.getElementById('strikes').innerHTML = '●'.repeat(strikes) + '○'.repeat(3 - strikes);
+            document.getElementById('balls').innerHTML = '●'.repeat(balls) + '○'.repeat(4 - balls);
+            document.getElementById('outs').innerHTML = '●'.repeat(outs) + '○'.repeat(3 - outs);
+            document.getElementById('sp-display').innerText = sp;
+        }
+
+        function startMatch() {
+            document.getElementById('menu-overlay').style.display = 'none';
+            scores = { p1: 0, p2: 0 };
+            inning = 1;
+            outs = 0;
+            setupInning();
+        }
+
+        function setupInning() {
+            strikes = 0; balls = 0;
+            const squad = getBestPlayers();
+            
+            if (inning === 1) {
+                document.getElementById('turn-display').innerText = "1回表 [攻撃:P1 / 守備:P2]";
+                activeBatter = { name: `P1: ${squad.batter.name}`, meet: squad.batter.meet, rank: squad.batter.rank };
+                activePitcher = { name: `P2: ${squad.pitcher.name}`, speed: squad.pitcher.speed, rank: squad.pitcher.rank };
+                showCenterMsg("1回表 P1の攻撃\n画面タップで投球スタート", "#fff");
+            } else {
+                document.getElementById('turn-display').innerText = "1回裏 [攻撃:P2 / 守備:P1]";
+                activeBatter = { name: `P2: ${squad.batter.name}`, meet: squad.batter.meet, rank: squad.batter.rank };
+                activePitcher = { name: `P1: ${squad.pitcher.name}`, speed: squad.pitcher.speed, rank: squad.pitcher.rank };
+                showCenterMsg("1回裏 P2の攻撃\n画面タップで投球スタート", "#fff");
+            }
+            
+            updateHud();
+            updateCardDisplay();
+            gameState = 'PITCHING_WAIT';
+        }
+
+        function updateCardDisplay() {
+            document.getElementById('card-name').innerText = activeBatter.name;
+            document.getElementById('card-status').innerText = `Rank ${activeBatter.rank} (ミート:${activeBatter.meet})`;
+        }
+
+        function showCenterMsg(txt, color) {
+            const msg = document.getElementById('msg');
+            msg.innerText = txt; msg.style.color = color; msg.style.display = 'block';
+        }
+
+        // 投球アクション
+        function cpuOrUserPitch() {
+            document.getElementById('msg').style.display = 'none';
+            ball.position.set(0, 1.4, -10); // マウンドから
+            
+            // 投手の能力に応じて球速を可変（プロスピ風リアルスピード調整）
+            const calculatedSpeed = (activePitcher.speed / 150) * ballSpeedFactor;
+            
+            // ちょっとした変化球ブレ
+            const curveX = (Math.random() - 0.5) * 0.4;
+            ballVelocity.set(curveX / 25, (0.8 - ball.position.y) / 25, calculatedSpeed);
+            
+            ballState = 'PITCHED';
+            gameState = 'BALL_FLYING';
+        }
+
+        let isSwinging = false;
+        let swingTimer = 0;
+
+        // タップ/クリック感知時の統合ハンドラー (ターン制制御)
+        function handleInteraction() {
+            if (gameState === 'PITCHING_WAIT') {
+                cpuOrUserPitch();
+                return;
+            }
+
+            if (gameState === 'BALL_FLYING' && !isSwinging) {
+                isSwinging = true;
+                swingTimer = 0;
+
+                if (ballState === 'PITCHED') {
+                    const zDiff = Math.abs(ball.position.z - 1.0); // ホームベース位置
+                    const hitZone = 0.12 + (activeBatter.meet / 300); // ミート値が大きいほど当たり判定が広い
+
+                    if (zDiff < hitZone) {
+                        // ヒット判定成功
+                        ballState = 'HIT';
+                        sp += 30; // ヒット報酬SP
+                        showCenterMsg("HIT!!", "#ffeb3b");
+                        
+                        if (inning === 1) scores.p1++; else scores.p2++; // 簡易的に1ヒット1点計算
+                        
+                        ballVelocity.set((Math.random() - 0.5) * 0.6, 0.4, -0.6);
+                        setTimeout(resetInningState, 2000);
                     }
                 }
             }
-        }
 
-        // アイテム(手記)の配置
-        function spawnPages() {
-            const spawnPoints = [{x: 14, z: 1}, {x: 1, z: 14}, {x: 14, z: 14}];
-            const pageGeo = new THREE.BoxGeometry(0.8, 0.1, 0.6);
-            const pageMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x333322 });
-
-            spawnPoints.forEach((pt) => {
-                const page = new THREE.Mesh(pageGeo, pageMat);
-                page.position.set(pt.x * unitSize, 0.5, pt.z * unitSize);
-                scene.add(page);
-                pagesArray.push(page);
-
-                const pageLight = new THREE.PointLight(0x999955, 0.5, 3);
-                pageLight.position.set(pt.x * unitSize, 1, pt.z * unitSize);
-                scene.add(pageLight);
-                page.associatedLight = pageLight;
-            });
-        }
-
-        // モンスター（這い寄る影）の生成
-        function createMonster() {
-            monster = new THREE.Group();
-            
-            const headGeo = new THREE.SphereGeometry(0.6, 8, 8);
-            const headMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 3.2;
-            monster.add(head);
-
-            // 赤く光る不気味な眼
-            const eyeGeo = new THREE.SphereGeometry(0.08, 4, 4);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-            leftEye.position.set(0.2, 3.3, -0.5);
-            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-            rightEye.position.set(-0.2, 3.3, -0.5);
-            monster.add(leftEye, rightEye);
-
-            const bodyGeo = new THREE.CylinderGeometry(0.2, 0.6, 2.5, 8);
-            const bodyMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.75;
-            monster.add(body);
-
-            monster.position.set(8 * unitSize, 0, 8 * unitSize); // 中央から追跡開始
-            scene.add(monster);
-        }
-
-        // --- キー・マウス入力の処理 ---
-        function onKeyDown(e) {
-            switch (e.code) {
-                case 'KeyW': case 'ArrowUp': moveForward = true; break;
-                case 'KeyS': case 'ArrowDown': moveBackward = true; break;
-                case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
-                case 'KeyD': case 'ArrowRight': moveRight = true; break;
-            }
-            if (!document.pointerLockElement && isGameActive) {
-                document.body.requestPointerLock();
+            if (gameState === 'END') {
+                document.getElementById('menu-overlay').style.display = 'flex';
+                document.getElementById('menu-sp').innerText = `所持SP: ${sp}`;
+                gameState = 'MENU';
             }
         }
 
-        function onKeyUp(e) {
-            switch (e.code) {
-                case 'KeyW': case 'ArrowUp': moveForward = false; break;
-                case 'KeyS': case 'ArrowDown': moveBackward = false; break;
-                case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
-                case 'KeyD': case 'ArrowRight': moveRight = false; break;
-            }
-        }
+        function resetInningState() {
+            ballState = 'NONE';
+            ball.position.set(0, -10, 0);
+            strikes = 0; balls = 0;
+            updateHud();
 
-        function onMouseMove(e) {
-            if (document.pointerLockElement !== document.body) return;
-            yaw -= e.movementX * 0.0025;
-            pitch -= e.movementY * 0.0025;
-            pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-            camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        // 壁との衝突判定（すり抜け対策）
-        function checkWallCollision(newPos) {
-            const playerRadius = 1.0;
-            for (let i = 0; i < walls.length; i++) {
-                const w = walls[i];
-                const minX = w.position.x - unitSize / 2 - playerRadius;
-                const maxX = w.position.x + unitSize / 2 + playerRadius;
-                const minZ = w.position.z - unitSize / 2 - playerRadius;
-                const maxZ = w.position.z + unitSize / 2 + playerRadius;
-
-                if (newPos.x > minX && newPos.x < maxX && newPos.z > minZ && newPos.z < maxZ) {
-                    return true;
+            if (outs >= 3) {
+                if (inning === 1) {
+                    inning = 2;
+                    outs = 0;
+                    setupInning();
+                } else {
+                    // 試合終了判定
+                    gameState = 'END';
+                    let winnerText = "DRAW (引き分け)";
+                    if (scores.p1 > scores.p2) winnerText = "🏆 P1の勝利！";
+                    else if (scores.p2 > scores.p1) winnerText = "🏆 P2の勝利！";
+                    
+                    sp += 100; // 試合完了ボーナス
+                    showCenterMsg(`GAME SET!\n${winnerText}\n(タップでメニューへ)`, "#00e676");
                 }
+            } else {
+                gameState = 'PITCHING_WAIT';
+                showCenterMsg("NEXT PITCH\nタップで投球", "#fff");
             }
-            return false;
         }
 
-        // --- メインループ ---
+        // アニメーションループ
         function animate() {
             requestAnimationFrame(animate);
-            if (!isGameActive) return;
 
-            const time = performance.now();
-            const delta = (time - prevTime) / 1000;
-            prevTime = time;
-
-            // ライトの手ブレ演出
-            flashlight.position.x = Math.sin(time * 0.004) * 0.02;
-            flashlight.position.y = Math.cos(time * 0.003) * 0.02;
-
-            // 移動処理
-            velocity.x -= velocity.x * 10.0 * delta;
-            velocity.z -= velocity.z * 10.0 * delta;
-
-            direction.z = Number(moveForward) - Number(moveBackward);
-            direction.x = Number(moveRight) - Number(moveLeft);
-            direction.normalize();
-
-            const camRotation = new THREE.Euler(0, yaw, 0, 'YXZ');
-            const moveDir = new THREE.Vector3(direction.x, 0, direction.z).applyEuler(camRotation);
-
-            if (moveForward || moveBackward) velocity.z -= moveDir.z * 120.0 * delta;
-            if (moveLeft || moveRight) velocity.x -= moveDir.x * 120.0 * delta;
-
-            const nextPos = camera.position.clone();
-            nextPos.x += velocity.x * delta;
-            if (!checkWallCollision(nextPos)) camera.position.x = nextPos.x;
-
-            nextPos.set(camera.position.x, camera.position.y, camera.position.z + velocity.z * delta);
-            if (!checkWallCollision(nextPos)) camera.position.z = nextPos.z;
-
-            // 手記の回収判定
-            pagesArray.forEach((page) => {
-                if (page.visible) {
-                    page.rotation.y += 0.02;
-                    if (camera.position.distanceTo(page.position) < 2.0) {
-                        page.visible = false;
-                        if(page.associatedLight) scene.remove(page.associatedLight);
-                        pagesCollected++;
-                        pagesCountEl.innerText = pagesCollected;
-                        playPickupSound();
-
-                        if (pagesCollected >= totalPages) triggerWin();
-                    }
+            if (isSwinging) {
+                swingTimer += 0.2;
+                batPivot.rotation.y = -Math.PI / 4 + Math.sin(swingTimer) * Math.PI;
+                if (swingTimer >= Math.PI) {
+                    isSwinging = false;
+                    resetBat();
                 }
-            });
-
-            // モンスターの追跡AI
-            const distToMonster = camera.position.distanceTo(monster.position);
-            monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
-
-            // 手記を集めるほどモンスターが加速
-            let monsterSpeed = 1.8 + (pagesCollected * 0.8);
-            if (distToMonster < 15) monsterSpeed += 1.0;
-
-            const monsterDir = new THREE.Vector3().subVectors(camera.position, monster.position).normalize();
-            monster.position.x += monsterDir.x * monsterSpeed * delta;
-            monster.position.z += monsterDir.z * monsterSpeed * delta;
-
-            // 距離に応じた心音の再生
-            heartbeatTimer += delta;
-            let heartbeatInterval = Math.max(0.3, distToMonster * 0.08);
-            if (heartbeatTimer > heartbeatInterval) {
-                playHeartbeat();
-                heartbeatTimer = 0;
             }
 
-            // 捕まった（ゲームオーバー）
-            if (distToMonster < 1.8) triggerJumpscare();
+            if (ballState === 'PITCHED') {
+                ball.position.add(ballVelocity);
+                if (ball.position.z > 2.2) { // キャッチャー通過
+                    ballState = 'MISSED';
+                    strikes++;
+                    showCenterMsg("STRIKE", "#ff1744");
+                    
+                    if (strikes >= 3) {
+                        outs++;
+                        showCenterMsg("OUT!", "#ff1744");
+                    }
+                    setTimeout(resetInningState, 1200);
+                }
+            } else if (ballState === 'HIT') {
+                ballVelocity.y -= 0.015; // 重力
+                ball.position.add(ballVelocity);
+            }
 
             renderer.render(scene, camera);
         }
 
-        // --- 演出と終了画面 ---
-        function triggerJumpscare() {
-            isGameActive = false;
-            document.exitPointerLock();
-            jumpscareOverlay.style.display = 'flex';
-            playJumpscareSound();
+        // 操作用リスナー
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); }, { passive: false });
+        window.addEventListener('mousedown', (e) => { if ('ontouchstart' in window) return; handleInteraction(); });
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-            setTimeout(() => {
-                jumpscareOverlay.style.display = 'none';
-                gameOverScreen.style.display = 'flex';
-            }, 1500);
-        }
-
-        function triggerWin() {
-            isGameActive = false;
-            document.exitPointerLock();
-            winScreen.style.display = 'flex';
-        }
+        animate();
     </script>
 </body>
 </html>
